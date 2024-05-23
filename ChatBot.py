@@ -1,6 +1,7 @@
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from flask import Flask, request, jsonify
+import re
 
 # Check if CUDA is available and set the device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -20,14 +21,19 @@ def generate_response(input_text):
         max_length=100, 
         num_return_sequences=1, 
         pad_token_id=tokenizer.eos_token_id,
-        temperature=0.7,  # Lower temperature to reduce randomness
-        top_k=50,         # Top-K sampling
-        top_p=0.9,        # Top-P (nucleus) sampling
-        repetition_penalty=2.0  # Penalize repetition
+        temperature=0.6,  # Lower temperature to reduce randomness
+        top_k=40,         # Top-K sampling
+        top_p=0.85,       # Top-P (nucleus) sampling
+        repetition_penalty=2.5  # Penalize repetition
     )
     
     # Decode the generated text
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    # Basic filtering for inappropriate content
+    response = re.sub(r'\b(idiot|stupid|dumb|fool)\b', 'person', response, flags=re.IGNORECASE)
+    response = response.split('\n')[0]  # Take only the first sentence
+    
     return response
 
 # Create a Flask app

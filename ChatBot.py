@@ -21,9 +21,10 @@ def generate_response(input_text):
         max_length=100, 
         num_return_sequences=1, 
         pad_token_id=tokenizer.eos_token_id,
-        temperature=0.6,  # Lower temperature to reduce randomness
-        top_k=40,         # Top-K sampling
-        top_p=0.85,       # Top-P (nucleus) sampling
+        do_sample=True,    # Enable sampling
+        temperature=0.6,   # Lower temperature to reduce randomness
+        top_k=40,          # Top-K sampling
+        top_p=0.85,        # Top-P (nucleus) sampling
         repetition_penalty=2.5  # Penalize repetition
     )
     

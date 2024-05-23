@@ -1,6 +1,6 @@
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 import re
 
 # Check if CUDA is available and set the device
@@ -40,9 +40,10 @@ def generate_response(input_text):
 # Create a Flask app
 app = Flask(__name__)
 
+# Route to serve the HTML file
 @app.route('/')
 def home():
-    return "Chatbot server is running. Use the /chat endpoint to interact."
+    return render_template_string(open('index.html').read())
 
 @app.route('/chat', methods=['POST'])
 def chat():

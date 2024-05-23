@@ -40,6 +40,10 @@ def generate_response(input_text):
 # Create a Flask app
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return "Chatbot server is running. Use the /chat endpoint to interact."
+
 @app.route('/chat', methods=['POST'])
 def chat():
     if request.is_json:

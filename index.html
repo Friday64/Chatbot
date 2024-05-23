@@ -25,6 +25,8 @@
             overflow-y: auto;
             padding: 16px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
         }
         #message-input {
             width: 100%;
@@ -40,6 +42,7 @@
             padding: 8px 12px;
             border-radius: 16px;
             background-color: #e0e0e0;
+            align-self: flex-start;
         }
         .user-message {
             background-color: #cce5ff;
@@ -47,7 +50,11 @@
         }
         .bot-message {
             background-color: #d4edda;
-            align-self: flex-start;
+        }
+        .loading {
+            align-self: center;
+            font-style: italic;
+            color: #888;
         }
     </style>
 </head>
@@ -77,16 +84,38 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
+        function showLoading() {
+            const loadingElement = document.createElement('div');
+            loadingElement.classList.add('message', 'loading');
+            loadingElement.textContent = 'Bot is typing...';
+            chatContainer.appendChild(loadingElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeLoading() {
+            const loadingElement = document.querySelector('.loading');
+            if (loadingElement) {
+                chatContainer.removeChild(loadingElement);
+            }
+        }
+
         async function sendMessageToBot(message) {
-            const response = await fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: message })
-            });
-            const data = await response.json();
-            appendMessage(data.response, 'bot-message');
+            showLoading();
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                const data = await response.json();
+                removeLoading();
+                appendMessage(data.response, 'bot-message');
+            } catch (error) {
+                removeLoading();
+                appendMessage('Error: Unable to reach the server', 'bot-message');
+            }
         }
     </script>
 </body>

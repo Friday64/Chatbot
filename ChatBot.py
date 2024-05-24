@@ -12,13 +12,21 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 model = GPT2LMHeadModel.from_pretrained('gpt2').to(device)
 
 def preprocess_input(input_text):
-    # Add custom preprocessing if needed
+    input_text = input_text.strip()
+    if not input_text.endswith('?'):
+        input_text += '?'
     return input_text
 
 def postprocess_output(response_text):
     # Basic filtering for inappropriate content
     response_text = re.sub(r'\b(idiot|stupid|dumb|fool)\b', 'person', response_text, flags=re.IGNORECASE)
-    response_text = response_text.split('\n')[0]  # Take only the first sentence
+    # Split sentences and return the first unique sentence
+    sentences = response_text.split('.')
+    unique_sentences = []
+    for sentence in sentences:
+        if sentence.strip() and sentence.strip() not in unique_sentences:
+            unique_sentences.append(sentence.strip())
+    response_text = '. '.join(unique_sentences)
     return response_text
 
 def generate_response(input_text):

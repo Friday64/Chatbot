@@ -12,6 +12,7 @@ tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 model = GPT2LMHeadModel.from_pretrained('gpt2').to(device)
 
 def preprocess_input(input_text):
+    # Add specific keywords or phrases to improve response context
     input_text = input_text.strip()
     if not input_text.endswith('?'):
         input_text += '?'
@@ -20,13 +21,13 @@ def preprocess_input(input_text):
 def postprocess_output(response_text):
     # Basic filtering for inappropriate content
     response_text = re.sub(r'\b(idiot|stupid|dumb|fool)\b', 'person', response_text, flags=re.IGNORECASE)
-    # Split sentences and return the first unique sentence
+    # Split sentences and return the first meaningful sentence
     sentences = response_text.split('.')
     unique_sentences = []
     for sentence in sentences:
         if sentence.strip() and sentence.strip() not in unique_sentences:
             unique_sentences.append(sentence.strip())
-    response_text = '. '.join(unique_sentences)
+    response_text = '. '.join(unique_sentences[:2])  # Return the first two unique sentences
     return response_text
 
 def generate_response(input_text):
@@ -39,7 +40,7 @@ def generate_response(input_text):
     # Generate the output text with adjusted parameters
     outputs = model.generate(
         inputs, 
-        max_length=150,           # Increased max length for more detailed responses
+        max_length=100,           # Increased max length for more detailed responses
         num_return_sequences=1, 
         pad_token_id=tokenizer.eos_token_id,
         do_sample=True,           # Enable sampling

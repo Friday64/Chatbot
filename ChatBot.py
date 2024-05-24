@@ -11,29 +11,41 @@ print(f"Using device: {device}")
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 model = GPT2LMHeadModel.from_pretrained('gpt2').to(device)
 
+def preprocess_input(input_text):
+    # Add custom preprocessing if needed
+    return input_text
+
+def postprocess_output(response_text):
+    # Basic filtering for inappropriate content
+    response_text = re.sub(r'\b(idiot|stupid|dumb|fool)\b', 'person', response_text, flags=re.IGNORECASE)
+    response_text = response_text.split('\n')[0]  # Take only the first sentence
+    return response_text
+
 def generate_response(input_text):
+    # Preprocess the input
+    input_text = preprocess_input(input_text)
+    
     # Encode the input text
     inputs = tokenizer.encode(input_text, return_tensors='pt').to(device)
     
     # Generate the output text with adjusted parameters
     outputs = model.generate(
         inputs, 
-        max_length=100, 
+        max_length=150,           # Increased max length for more detailed responses
         num_return_sequences=1, 
         pad_token_id=tokenizer.eos_token_id,
-        do_sample=True,    # Enable sampling
-        temperature=0.6,   # Lower temperature to reduce randomness
-        top_k=40,          # Top-K sampling
-        top_p=0.85,        # Top-P (nucleus) sampling
-        repetition_penalty=2.5  # Penalize repetition
+        do_sample=True,           # Enable sampling
+        temperature=0.7,          # Slightly higher temperature for balanced randomness
+        top_k=50,                 # Top-K sampling
+        top_p=0.9,                # Top-P (nucleus) sampling
+        repetition_penalty=1.5    # Lowered repetition penalty for better response flow
     )
     
     # Decode the generated text
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
-    # Basic filtering for inappropriate content
-    response = re.sub(r'\b(idiot|stupid|dumb|fool)\b', 'person', response, flags=re.IGNORECASE)
-    response = response.split('\n')[0]  # Take only the first sentence
+    # Postprocess the output
+    response = postprocess_output(response)
     
     return response
 

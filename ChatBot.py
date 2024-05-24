@@ -2,20 +2,22 @@ import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from flask import Flask, request, jsonify, render_template_string
 import re
+import logging
+from functools import lru_cache
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
 
 # Check if CUDA is available and set the device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"Using device: {device}")
+logging.info(f"Using device: {device}")
 
 # Load the pre-trained GPT-2 model and tokenizer
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 model = GPT2LMHeadModel.from_pretrained('gpt2').to(device)
 
 def preprocess_input(input_text):
-    # Add specific keywords or phrases to improve response context
     input_text = input_text.strip()
-    if not input_text.endswith('?'):
-        input_text += '?'
     return input_text
 
 def postprocess_output(response_text):
@@ -30,9 +32,51 @@ def postprocess_output(response_text):
     response_text = '. '.join(unique_sentences[:2])  # Return the first two unique sentences
     return response_text
 
+@lru_cache(maxsize=100)
+def rule_based_response(input_text):
+    input_text = input_text.lower()
+    if "what is" in input_text and ("times" in input_text or "multiplied by" in input_text):
+        try:
+            parts = re.split(r'\s+', input_text)
+            num1 = int(parts[2])
+            num2 = int(parts[4])
+            return str(num1 * num2)
+        except:
+            return "I couldn't parse the numbers in the math question."
+    if "what is" in input_text and ("plus" in input_text or "added to" in input_text):
+        try:
+            parts = re.split(r'\s+', input_text)
+            num1 = int(parts[2])
+            num2 = int(parts[4])
+            return str(num1 + num2)
+        except:
+            return "I couldn't parse the numbers in the math question."
+    if "what is" in input_text and ("minus" in input_text or "subtracted from" in input_text):
+        try:
+            parts = re.split(r'\s+', input_text)
+            num1 = int(parts[2])
+            num2 = int(parts[4])
+            return str(num1 - num2)
+        except:
+            return "I couldn't parse the numbers in the math question."
+    if "what is" in input_text and ("divided by" in input_text):
+        try:
+            parts = re.split(r'\s+', input_text)
+            num1 = int(parts[2])
+            num2 = int(parts[4])
+            return str(num1 / num2)
+        except:
+            return "I couldn't parse the numbers in the math question."
+    return None
+
 def generate_response(input_text):
     # Preprocess the input
     input_text = preprocess_input(input_text)
+    
+    # Rule-based responses for specific questions
+    rule_response = rule_based_response(input_text)
+    if rule_response:
+        return rule_response
     
     # Encode the input text
     inputs = tokenizer.encode(input_text, return_tensors='pt').to(device)
@@ -64,15 +108,26 @@ app = Flask(__name__)
 # Route to serve the HTML file
 @app.route('/')
 def home():
-    return render_template_string(open('index.html').read())
+    try:
+        with open('index.html') as f:
+            return render_template_string(f.read())
+    except Exception as e:
+        logging.error(f"Error serving home page: {e}")
+        return "Error serving home page", 500
 
 @app.route('/chat', methods=['POST'])
 def chat():
     if request.is_json:
-        user_input = request.json.get('message')
-        response = generate_response(user_input)
-        return jsonify({'response': response})
-    return "Invalid request", 400
+        try:
+            user_input = request.json.get('message')
+            logging.info(f"Received user input: {user_input}")
+            response = generate_response(user_input)
+            logging.info(f"Generated response: {response}")
+            return jsonify({'response': response})
+        except Exception as e:
+            logging.error(f"Error generating response: {e}")
+            return jsonify({'error': 'An error occurred processing your request'}), 500
+    return jsonify({'error': 'Invalid request'}), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
